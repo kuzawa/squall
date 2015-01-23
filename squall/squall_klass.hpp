@@ -5,6 +5,7 @@
 
 #include "squall_vm.hpp"
 #include "squall_defun.hpp"
+#include "squall_defvar.hpp"
 
 namespace squall {
 
@@ -37,6 +38,52 @@ public:
         return *this;
     }
 
+    template <class V>
+    Klass<C, Base>& var(const string& name, V C::* r) {
+        auto& imp = *imp_.lock();
+        detail::defvar_local(
+            vm_.handle(),
+            imp.get_getter_table(),
+            imp.get_setter_table(),
+            name,
+            r);
+        return *this;
+    }
+
+    template <class V>
+    Klass<C, Base>& var(const string& name, const V C::* r) {
+        detail::defvar_local_const(
+            vm_.handle(),
+            imp_.lock()->get_getter_table(),
+            name,
+            r);
+        return *this;
+    }
+
+    template <class GF>
+    Klass<C, Base>& prop(const string& name, GF gf) {
+        auto& imp = *imp_.lock();
+        detail::defprop(
+            vm_.handle(),
+            imp.get_getter_table(),
+            name,
+            to_function(gf));
+        return *this;
+    }
+
+    template <class GF, class SF>
+    Klass<C, Base>& prop(const string& name, GF gf, SF sf) {
+        auto& imp = *imp_.lock();
+        detail::defprop(
+            vm_.handle(),
+            imp.get_getter_table(),
+            imp.get_setter_table(),
+            name,
+            to_function(gf),
+            to_function(sf));
+        return *this;
+    }
+    
 private:
     VM& vm_;
     std::weak_ptr<detail::KlassImp<C>> imp_;
