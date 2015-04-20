@@ -128,6 +128,7 @@ enum class FetchContext {
     Argument,
     ReturnValue,
     TableEntry,
+	ArrayEntry,
     YieldedValue,
 };
 
@@ -146,6 +147,11 @@ inline string fetch_context_string<FetchContext::ReturnValue>() {
 template <>
 inline string fetch_context_string<FetchContext::TableEntry>() {
     return "table entry";
+}
+
+template <>
+inline string fetch_context_string<FetchContext::ArrayEntry>() {
+	return "array entry";
 }
 
 template <>
@@ -252,6 +258,14 @@ struct Fetch<bool, FC> {
 };
 
 template <FetchContext FC>
+struct Fetch<HSQOBJECT, FC> {
+	static HSQOBJECT doit(HSQUIRRELVM vm, SQInteger index, SQObjectType type) {
+		return getdata<HSQOBJECT, FC>(
+		vm, index, type, sq_getstackobj);
+	}
+};
+
+template <FetchContext FC>
 struct Fetch<string_wrapper, FC> {
     static string_wrapper doit(HSQUIRRELVM vm, SQInteger index) {
         return getdata<const SQChar*, FC>(
@@ -263,6 +277,11 @@ template <class T, FetchContext FC>
 typename wrapped_type<T>::wrapper_type
 fetch(HSQUIRRELVM vm, SQInteger index) {
     return Fetch<typename wrapped_type<T>::wrapper_type, FC>::doit(vm, index);
+}
+
+template <class T, FetchContext FC>
+T fetch(HSQUIRRELVM vm, SQInteger index, SQObjectType type) {
+	return Fetch<typename wrapped_type<T>::wrapper_type, FC>::doit(vm, index, type);
 }
 
 }

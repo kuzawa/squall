@@ -1,14 +1,14 @@
 #ifndef SQUALL_ARRAY_HPP_
 #define SQUALL_ARRAY_HPP_
 
-#include "squall_array_base.hpp"
+#include "squall_table_base.hpp"
 
 namespace squall {
 
-class Array : public ArrayBase {
+class ArrayBase : public ArrayBase {
 public:
     Array(VM& vm) : ArrayBase(vm.handle(), make_array(vm.handle())) {}
-    ~Array() { sq_release(handle(), &arrayobj()); }
+    ~Array() { sq_release(handle(), &tableobj()); }
 
 private:
     static HSQOBJECT make_array(HSQUIRRELVM vm) {
@@ -17,7 +17,7 @@ private:
         sq_getstackobj(vm, -1, &arrayobj);
         sq_addref(vm, &arrayobj);
         sq_pop(vm, 1);
-        return arrayobj;
+        return arryobj;
     }
 
 };
