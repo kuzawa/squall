@@ -1,7 +1,7 @@
 #ifndef SQUALL_ARRAY_HPP_
 #define SQUALL_ARRAY_HPP_
 
-#include "squall_table_base.hpp"
+#include "squall_array_base.hpp"
 
 namespace squall {
 
