@@ -100,8 +100,21 @@ private:
 
 };
 
-template <>
-inline ArrayBase TableBase::get(const string& name) {
+template <> inline
+bool TableBase::get(const string& name, ArrayBase& r) {
+	sq_pushobject(vm_, tableobj_);
+	sq_pushstring(vm_, name.data(), name.length());
+	if (!SQ_SUCCEEDED(sq_get(vm_, -2))) {
+		return false;
+	}
+	HSQOBJECT o = detail::fetch<HSQOBJECT, detail::FetchContext::TableEntry>(vm_, -1, OT_ARRAY);
+	sq_pop(vm_, 2);
+	r = ArrayBase(vm_, o);
+	return true;
+}
+
+template <> inline
+ArrayBase TableBase::get(const string& name) {
     HSQOBJECT obj;
     if (get<HSQOBJECT>(name, obj, OT_ARRAY)) {
         return ArrayBase(vm_, obj);
@@ -109,8 +122,8 @@ inline ArrayBase TableBase::get(const string& name) {
     throw squirrel_error("slot '" + name + "' not found");
 }
 
-template <>
-inline TableBase ArrayBase::get(SQInteger idx) {
+template <> inline
+TableBase ArrayBase::get(SQInteger idx) {
     HSQOBJECT obj;
     if (get<HSQOBJECT>(idx, obj, OT_TABLE)) {
         return TableBase(vm_, obj);
@@ -118,8 +131,8 @@ inline TableBase ArrayBase::get(SQInteger idx) {
     throw squirrel_error("index '" + std::to_string(idx) + "'is out of range");
 }
 
-template <>
-inline ArrayBase ArrayBase::get(SQInteger idx) {
+template <> inline
+ArrayBase ArrayBase::get(SQInteger idx) {
 	HSQOBJECT obj;
 	if (get<HSQOBJECT>(idx, obj, OT_ARRAY)) {
 		return ArrayBase(vm_, obj);
