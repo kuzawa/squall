@@ -7,8 +7,15 @@ int main() {
         squall::VMStd vm;
         vm.dofile("array.nut");
 
-        squall::ArrayBase arr = vm.root_table().get<squall::ArrayBase>("arr");
-        squall::TableBase color = arr.get<squall::TableBase>(0);
+		squall::ArrayBase arr2;
+
+		{
+			squall::ArrayBase arr = vm.root_table().get<squall::ArrayBase>("arr");
+			squall::TableBase color = arr.get<squall::TableBase>(0);
+			arr2 = arr;
+		}
+
+		squall::TableBase color = arr2.get<squall::TableBase>(0);
 
         std::cout << color.get<std::string>("color") << std::endl;
     }

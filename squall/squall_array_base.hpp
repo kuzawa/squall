@@ -8,7 +8,47 @@ namespace squall {
 
 class ArrayBase {
 public:
-    ArrayBase(HSQUIRRELVM vm, const HSQOBJECT& to) : vm_(vm), arrayobj_(to) {}
+    ArrayBase() : vm_(nullptr) {
+        sq_resetobject(&arrayobj_);
+    }
+
+    ArrayBase(HSQUIRRELVM vm, const HSQOBJECT& to) : vm_(vm), arrayobj_(to) {
+        if ( !sq_isnull(arrayobj_) ) {
+            assert(vm_);
+            sq_addref(vm_, &arrayobj_);
+        }
+    }
+
+    ArrayBase(const ArrayBase& o) {
+        vm_ = o.vm_;
+        arrayobj_ = o.arrayobj_;
+        if ( !sq_isnull(arrayobj_) ) {
+            sq_addref(vm_, &arrayobj_);
+        }
+    }
+
+    virtual ~ArrayBase() {
+        if ( !sq_isnull(arrayobj_) ) {
+            sq_release(vm_, &arrayobj_);
+        }
+    }
+
+    ArrayBase& operator=(const ArrayBase& o) {
+        if ( this != &o ) {
+            HSQUIRRELVM tmpvm = vm_;
+            HSQOBJECT tmpobj = arrayobj_;
+            vm_ = o.vm_;
+            arrayobj_ = o.arrayobj_;
+            // thisが違っても、同じテーブルインスタンスをさしているかもしれない
+            if ( !sq_isnull(arrayobj_) ) {
+                sq_addref(vm_, &arrayobj_);
+            }
+            if ( !sq_isnull(tmpobj) ) {
+                sq_release(tmpvm, &tmpobj);
+            }
+        }
+        return *this;
+    }
 
     template <class T>
     T get(SQInteger idx) {

@@ -9,7 +9,47 @@ namespace squall {
 
 class TableBase {
 public:
-    TableBase(HSQUIRRELVM vm, const HSQOBJECT& to) : vm_(vm), tableobj_(to) {}
+    TableBase() : vm_(nullptr) {
+        sq_resetobject(&tableobj_);
+    }
+
+    TableBase(HSQUIRRELVM vm, const HSQOBJECT& to) : vm_(vm), tableobj_(to) {
+        if ( !sq_isnull(tableobj_) ) {
+            assert(vm);
+            sq_addref(vm_, &tableobj_);
+        }
+    }
+
+    TableBase(const TableBase& o) {
+        vm_ = o.vm_;
+        tableobj_ = o.tableobj_;
+        if ( !sq_isnull(tableobj_) ) {
+            sq_addref(vm_, &tableobj_);
+        }
+    }
+
+    virtual ~TableBase() {
+        if ( !sq_isnull(tableobj_) ) {
+            sq_release(vm_, &tableobj_);
+        }
+    }
+
+    TableBase& operator=(const TableBase& o) {
+        if ( this != &o ) {
+            HSQUIRRELVM tmpvm = vm_;
+            HSQOBJECT tmpobj = tableobj_;
+            vm_ = o.vm_;
+            tableobj_ = o.tableobj_;
+            // thisが違っても、同じテーブルインスタンスをさしているかもしれない
+            if ( !sq_isnull(tableobj_) ) {
+                sq_addref(vm_, &tableobj_);
+            }
+            if ( !sq_isnull(tmpobj) ) {
+                sq_release(tmpvm, &tmpobj);
+            }
+        }
+        return *this;
+    }
 
     template <class T>
     void set(const string& name, const T& v) {
