@@ -244,8 +244,11 @@ struct Fetch<std::uint64_t, FC> : public FetchInt<FC, std::uint64_t> {};
 template <FetchContext FC>
 struct Fetch<float, FC> {
     static float doit(HSQUIRRELVM vm, SQInteger index) {
-        return getdata<SQFloat, FC>(
-            vm, index, OT_FLOAT, sq_getfloat);
+		SQObjectType at = sq_gettype(vm, index);
+		if ( at == OT_INTEGER ) {
+			return getdata<SQInteger, FC>(vm, index, OT_INTEGER, sq_getinteger);
+		}
+		return getdata<SQFloat, FC>(vm, index, OT_FLOAT, sq_getfloat);
     }
 };
 
