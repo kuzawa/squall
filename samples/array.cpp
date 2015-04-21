@@ -1,11 +1,16 @@
 #include "../squall/squall_vmstd.hpp"
 #include "../squall/squall_array_base.hpp"
+#include "../squall/squall_array.hpp"
+#include "../squall/squall_table.hpp"
 #include <iostream>
 
 int main() {
     try {
         squall::VMStd vm;
         vm.dofile("array.nut");
+
+		squall::Table t(vm);
+		squall::Array a(vm);
 
 		squall::ArrayBase arr2;
 
