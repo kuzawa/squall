@@ -18,6 +18,9 @@ int main() {
 		squall::TableBase color = arr2.get<squall::TableBase>(0);
 
         std::cout << color.get<std::string>("color") << std::endl;
+
+		std::cout << "arr2 size = " + std::to_string(arr2.size()) << std::endl;
+		std::cout << "color size = " + std::to_string(color.size()) << std::endl;
     }
     catch(squall::squirrel_error& e) {
         std::cerr << e.what() << std::endl;

@@ -83,6 +83,13 @@ public:
         return true;
     }
 
+	SQInteger size() const {
+		sq_pushobject(vm_, arrayobj_);
+		SQInteger r = sq_getsize(vm_, -1);
+		sq_pop(vm_, 1);
+		return r;
+	}
+
 protected:
     HSQUIRRELVM handle() { return vm_; }
     HSQOBJECT&  arrayobj() { return arrayobj_; }
