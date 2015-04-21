@@ -26,6 +26,10 @@ int main() {
 
 		std::cout << "arr2 size = " + std::to_string(arr2.size()) << std::endl;
 		std::cout << "color size = " + std::to_string(color.size()) << std::endl;
+
+		squall::ArrayBase lang = vm.root_table().get<squall::ArrayBase>("lang");
+		std::cout << lang.get<squall::ArrayBase>(0).get<std::string>(0) << std::endl;
+
     }
     catch(squall::squirrel_error& e) {
         std::cerr << e.what() << std::endl;

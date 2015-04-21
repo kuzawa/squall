@@ -118,6 +118,15 @@ inline TableBase ArrayBase::get(SQInteger idx) {
     throw squirrel_error("index '" + std::to_string(idx) + "'is out of range");
 }
 
+template <>
+inline ArrayBase ArrayBase::get(SQInteger idx) {
+	HSQOBJECT obj;
+	if (get<HSQOBJECT>(idx, obj, OT_ARRAY)) {
+		return ArrayBase(vm_, obj);
+	}
+	throw squirrel_error("index '" + std::to_string(idx) + "'is out of range");
+}
+
 }
 
 #endif // SQUALL_ARRAY_BASE_HPP_
