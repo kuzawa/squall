@@ -62,24 +62,25 @@ public:
 
     template <class T>
     T get(const string& name) {
-        T r;
-        if(get<T>(name, r)) {
-            return r;
-        }
-        throw squirrel_error("slot '" + name + "' not found");
+		keeper k(vm_);
+		sq_pushobject(vm_, tableobj_);
+		sq_pushstring(vm_, name.data(), name.length());
+		if (!SQ_SUCCEEDED(sq_get(vm_, -2))) {
+			throw squirrel_error("slot '" + name + "' not found");
+		}
+		return T(detail::fetch<T, detail::FetchContext::TableEntry>(vm_, -1));
     }
 
-    template <class T>
-    bool get(const string& name, T& r) {
-        sq_pushobject(vm_, tableobj_);
-        sq_pushstring(vm_, name.data(), name.length());
-        if (!SQ_SUCCEEDED(sq_get(vm_, -2))) {
-            return false;
-        }
-        r = detail::fetch<T, detail::FetchContext::TableEntry>(vm_, -1);
-        sq_pop(vm_, 2);
-        return true;
-    }
+	template <class T>
+	bool get(const string& name, T& r) {
+		keeper k(vm_);
+		sq_pushobject(vm_, tableobj_);
+		sq_pushstring(vm_, name.data(), name.length());
+		if (!SQ_SUCCEEDED(sq_get(vm_, -2))) {
+			return false;
+		}
+		return detail::fetch2<T, detail::FetchContext::TableEntry>(vm_, -1, r);
+	}
 
     template <class R, class... T>
     R call(const string& name, T... args) {
@@ -113,17 +114,16 @@ protected:
     HSQUIRRELVM handle() { return vm_; }
     HSQOBJECT&  tableobj() { return tableobj_; }
 
-    template <class T>
-    bool get(const string& name, T& r, SQObjectType type) {
-        sq_pushobject(vm_, tableobj_);
-        sq_pushstring(vm_, name.data(), name.length());
-        if (!SQ_SUCCEEDED(sq_get(vm_, -2))) {
-            return false;
-        }
-        r = detail::fetch<T, detail::FetchContext::TableEntry>(vm_, -1, type);
-        sq_pop(vm_, 2);
-        return true;
-    }
+//	bool get(const string& name, HSQOBJECT& r, SQObjectType type) {
+//		sq_pushobject(vm_, tableobj_);
+//		sq_pushstring(vm_, name.data(), name.length());
+//		if (!SQ_SUCCEEDED(sq_get(vm_, -2))) {
+//			return false;
+//		}
+//		bool ret = detail::fetch2_obj<detail::FetchContext::TableEntry>(vm_, -1, r, type);
+//		sq_pop(vm_, 2);
+//		return ret;
+//	}
 
 private:
     HSQUIRRELVM vm_;
@@ -133,11 +133,30 @@ private:
 
 template <>
 inline TableBase TableBase::get(const string& name) {
-    HSQOBJECT obj;
-    if (get<HSQOBJECT>(name, obj, OT_TABLE)) {
-        return TableBase(vm_, obj);
-    }
-    throw squirrel_error("slot '" + name + "' not found");
+	sq_pushobject(vm_, tableobj_);
+	sq_pushstring(vm_, name.data(), name.length());
+	if (!SQ_SUCCEEDED(sq_get(vm_, -2))) {
+		throw squirrel_error("slot '" + name + "' not found");
+	}
+	HSQOBJECT r = detail::fetch_obj<detail::FetchContext::TableEntry>(vm_, -1, OT_TABLE);
+	sq_pop(vm_, 2);
+	return TableBase(vm_, r);
+}
+
+template <>
+inline bool TableBase::get(const string& name, TableBase& r) {
+	keeper k(vm_);
+	sq_pushobject(vm_, tableobj_);
+	sq_pushstring(vm_, name.data(), name.length());
+	if (!SQ_SUCCEEDED(sq_get(vm_, -2))) {
+		return false;
+	}
+	HSQOBJECT o;
+	bool ret = detail::fetch2_obj<detail::FetchContext::TableEntry>(vm_, -1, o, OT_TABLE);
+	if ( ret ) {
+		r = TableBase(vm_, o);
+	}
+	return ret;
 }
 
 }

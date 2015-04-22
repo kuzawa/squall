@@ -169,12 +169,30 @@ void check_argument_type(HSQUIRRELVM vm, SQInteger index, SQObjectType t) {
     }
 }
 
+template <FetchContext FC>
+bool test_argument_type(HSQUIRRELVM vm, SQInteger index, SQObjectType t) {
+	SQObjectType at = sq_gettype(vm, index);
+	if (at != t) {
+		return false;
+	}
+	return true;
+}
+
 template <class T, FetchContext FC, class F>
 T getdata(HSQUIRRELVM vm, SQInteger index, SQObjectType t, F f) {
     check_argument_type<FC>(vm, index, t);
     T r;
     f(vm, index, &r);
     return r;
+}
+
+template <class T, FetchContext FC, class F>
+bool getdata2(HSQUIRRELVM vm, SQInteger index, SQObjectType t, F f, T& v) {
+	if ( test_argument_type<FC>(vm, index, t) ) {
+		f(vm, index, &v);
+		return true;
+	}
+	return false;
 }
 
 template <class T, FetchContext FC>
@@ -186,6 +204,15 @@ public:
         sq_getuserdata(vm, index, &r, NULL);
         return **((T**)r);
     }
+	static bool doit2(HSQUIRRELVM vm, SQInteger index, T v) {
+		if ( test_argument_type<FC>(vm, index, OT_USERDATA) ) {
+			SQUserPointer r;
+			sq_getuserdata(vm, index, &r, NULL);
+			v = **((T**)r);
+			return true;
+		}
+		return false;
+	}
 };
 
 template <class T, FetchContext FC>
@@ -202,6 +229,20 @@ struct Fetch<T*, FC> {
                 vm, index, OT_USERPOINTER, sq_getuserpointer);
         }
     }
+	static bool doit2(HSQUIRRELVM vm, SQInteger index, T* v) {
+		HSQOBJECT sqo;
+		if (klass_table(vm).find_klass_object<T>(sqo)) {
+			if ( test_argument_type<FC>(vm, index, OT_INSTANCE) ) {
+				SQUserPointer r;
+				sq_getinstanceup(vm, index, &r, NULL);
+				*v = (T*)r;
+				return true;
+			}
+		} else {
+			return getdata2<SQUserPointer, FC>(
+				vm, index, OT_USERPOINTER, sq_getuserpointer, v);
+		}
+	}
 };
 
 template <class R, class... A, FetchContext FC>
@@ -214,6 +255,13 @@ struct Fetch<std::function<R (A...)>, FC> {
             throw squirrel_error("value must be closure or native closure");
         }
     }
+	static bool doit2(HSQUIRRELVM vm, SQInteger index, std::function<R (A...)>& v) {
+		auto t = sq_gettype(vm, index);
+		if (t == OT_NATIVECLOSURE || t == OT_CLOSURE) {
+			v = Closure<R (A...)>(vm, index);
+		}
+		return false;
+	}
 };
 
 template <FetchContext FC, class Int>
@@ -222,6 +270,12 @@ struct FetchInt {
         return static_cast<Int>(
             getdata<SQInteger, FC>(vm, index, OT_INTEGER, sq_getinteger));
     }
+	static bool doit2(HSQUIRRELVM vm, SQInteger index, Int& v) {
+		SQInteger r;
+		bool ret = getdata2<SQInteger, FC>(vm, index, OT_INTEGER, sq_getinteger, r);
+		v = static_cast<Int>(r);
+		return ret;
+	}
 };
 
 template <FetchContext FC>
@@ -250,6 +304,16 @@ struct Fetch<float, FC> {
 		}
 		return getdata<SQFloat, FC>(vm, index, OT_FLOAT, sq_getfloat);
     }
+	static bool doit2(HSQUIRRELVM vm, SQInteger index, float& v) {
+		SQObjectType at = sq_gettype(vm, index);
+		if ( at == OT_INTEGER ) {
+			SQInteger i;
+			bool ret = getdata2<SQInteger, FC>(vm, index, OT_INTEGER, sq_getinteger, i);
+			v = i;
+			return ret;
+		}
+		return getdata2<SQFloat, FC>(vm, index, OT_FLOAT, sq_getfloat, v);
+	}
 };
 
 template <FetchContext FC>
@@ -258,6 +322,10 @@ struct Fetch<bool, FC> {
         return getdata<SQBool, FC>(
             vm, index, OT_BOOL, sq_getbool);
     }
+	static bool doit2(HSQUIRRELVM vm, SQInteger index, bool& v) {
+		return getdata2<SQBool, FC>(
+		   vm, index, OT_BOOL, sq_getbool, v);
+	}
 };
 
 template <FetchContext FC>
@@ -265,6 +333,10 @@ struct Fetch<HSQOBJECT, FC> {
 	static HSQOBJECT doit(HSQUIRRELVM vm, SQInteger index, SQObjectType type) {
 		return getdata<HSQOBJECT, FC>(
 		vm, index, type, sq_getstackobj);
+	}
+	static bool doit2(HSQUIRRELVM vm, SQInteger index, SQObjectType type, HSQOBJECT& v) {
+		return getdata2<HSQOBJECT, FC>(
+				  vm, index, type, sq_getstackobj, v);
 	}
 };
 
@@ -274,6 +346,15 @@ struct Fetch<string_wrapper, FC> {
         return getdata<const SQChar*, FC>(
             vm, index, OT_STRING, sq_getstring);
     }
+	static bool doit2(HSQUIRRELVM vm, SQInteger index, string_wrapper& v) {
+		const SQChar* p = nullptr;
+		bool ret = getdata2<const SQChar*, FC>(
+            vm, index, OT_STRING, sq_getstring, p);
+		if ( p ) {
+			v = string_wrapper(p);
+		}
+		return ret;
+	}
 };
 
 template <class T, FetchContext FC>
@@ -283,8 +364,25 @@ fetch(HSQUIRRELVM vm, SQInteger index) {
 }
 
 template <class T, FetchContext FC>
-T fetch(HSQUIRRELVM vm, SQInteger index, SQObjectType type) {
-	return Fetch<typename wrapped_type<T>::wrapper_type, FC>::doit(vm, index, type);
+bool fetch2(HSQUIRRELVM vm, SQInteger index, T& v) {
+	typename wrapped_type<T>::wrapper_type t(v);
+	bool ret = Fetch<typename wrapped_type<T>::wrapper_type, FC>::doit2(vm, index, t);
+	v = t;
+	return ret;
+}
+
+template <FetchContext FC>
+HSQOBJECT
+fetch_obj(HSQUIRRELVM vm, SQInteger index, SQObjectType type) {
+	return Fetch<typename wrapped_type<HSQOBJECT>::wrapper_type, FC>::doit(vm, index, type);
+}
+
+template <FetchContext FC>
+bool fetch2_obj(HSQUIRRELVM vm, SQInteger index, HSQOBJECT& v, SQObjectType type) {
+	typename wrapped_type<HSQOBJECT>::wrapper_type t(v);
+	bool ret = Fetch<typename wrapped_type<HSQOBJECT>::wrapper_type, FC>::doit2(vm, index, type, t);
+	v = t;
+	return ret;
 }
 
 }
