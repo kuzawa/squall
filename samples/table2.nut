@@ -1,8 +1,7 @@
+one <- 1;
+
+hello <- "world";
+
 foo <- {
-    bar = "baz",
-    fruits = [
-        "apple",
-        "banana",
-        "pineapple",
-    ],
+    bar = ["baz"],
 };

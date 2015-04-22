@@ -7,19 +7,21 @@ int main() {
 		squall::VMStd vm;
 		vm.dofile("table2.nut");
 
-		squall::TableBase foo2;
+//		int one;
+//		bool ret = vm.root_table().get2<int>("one", one);
+//		std::cout << one << std::endl;
 
-		{
-			squall::TableBase foo = vm.root_table().get<squall::TableBase>("foo");
+//		std::string hello;
+//		hello = vm.root_table().get<std::string>("hello");
+//		bool ret = vm.root_table().get2<std::string>("hello", hello);
+//		std::cout << hello << std::endl;
+
+		squall::TableBase foo = vm.root_table().get<squall::TableBase>("foo");
+		std::string bar;
+		bool ret = foo.get2<std::string>("bar", bar);
+		if ( ret ) {
 			std::cout << foo.get<std::string>("bar") << std::endl;
-			foo2 = foo;
 		}
-		std::cout << foo2.get<std::string>("bar") << std::endl;
-
-		squall::ArrayBase fruits = foo2.get<squall::ArrayBase>("fruits");
-		std::cout << fruits.get<std::string>(0) << std::endl;
-		std::cout << fruits.get<std::string>(1) << std::endl;
-		std::cout << fruits.get<std::string>(2) << std::endl;
 	}
 	catch(squall::squirrel_error& e) {
 		std::cerr << e.what() << std::endl;
