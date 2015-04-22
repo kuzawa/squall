@@ -69,7 +69,7 @@ public:
         if (!SQ_SUCCEEDED(sq_get(vm_, -2))) {
             return false;
         }
-        return detail::fetch2<T, detail::FetchContext::ArrayEntry>(vm_, -1, r);
+        return detail::store<T, detail::FetchContext::ArrayEntry>(vm_, -1, r);
     }
 
     SQInteger size() const {
@@ -109,7 +109,7 @@ inline bool TableBase::get(const string& name, ArrayBase& r) {
 		return false;
 	}
 	HSQOBJECT o;
-	bool ret = detail::fetch2_obj<detail::FetchContext::TableEntry>(vm_, -1, o, OT_ARRAY);
+	bool ret = detail::store_obj<detail::FetchContext::TableEntry>(vm_, -1, o, OT_ARRAY);
 	if ( ret ) {
 		r = ArrayBase(vm_, o);
 	}

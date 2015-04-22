@@ -187,7 +187,7 @@ T getdata(HSQUIRRELVM vm, SQInteger index, SQObjectType t, F f) {
 }
 
 template <class T, FetchContext FC, class F>
-bool getdata2(HSQUIRRELVM vm, SQInteger index, SQObjectType t, F f, T& v) {
+bool storedata(HSQUIRRELVM vm, SQInteger index, SQObjectType t, F f, T& v) {
 	if ( test_argument_type<FC>(vm, index, t) ) {
 		f(vm, index, &v);
 		return true;
@@ -204,7 +204,7 @@ public:
         sq_getuserdata(vm, index, &r, NULL);
         return **((T**)r);
     }
-	static bool doit2(HSQUIRRELVM vm, SQInteger index, T v) {
+	static bool tryit(HSQUIRRELVM vm, SQInteger index, T v) {
 		if ( test_argument_type<FC>(vm, index, OT_USERDATA) ) {
 			SQUserPointer r;
 			sq_getuserdata(vm, index, &r, NULL);
@@ -229,7 +229,7 @@ struct Fetch<T*, FC> {
                 vm, index, OT_USERPOINTER, sq_getuserpointer);
         }
     }
-	static bool doit2(HSQUIRRELVM vm, SQInteger index, T* v) {
+	static bool tryit(HSQUIRRELVM vm, SQInteger index, T* v) {
 		HSQOBJECT sqo;
 		if (klass_table(vm).find_klass_object<T>(sqo)) {
 			if ( test_argument_type<FC>(vm, index, OT_INSTANCE) ) {
@@ -239,7 +239,7 @@ struct Fetch<T*, FC> {
 				return true;
 			}
 		} else {
-			return getdata2<SQUserPointer, FC>(
+			return storedata<SQUserPointer, FC>(
 				vm, index, OT_USERPOINTER, sq_getuserpointer, v);
 		}
 	}
@@ -255,7 +255,7 @@ struct Fetch<std::function<R (A...)>, FC> {
             throw squirrel_error("value must be closure or native closure");
         }
     }
-	static bool doit2(HSQUIRRELVM vm, SQInteger index, std::function<R (A...)>& v) {
+	static bool tryit(HSQUIRRELVM vm, SQInteger index, std::function<R (A...)>& v) {
 		auto t = sq_gettype(vm, index);
 		if (t == OT_NATIVECLOSURE || t == OT_CLOSURE) {
 			v = Closure<R (A...)>(vm, index);
@@ -270,9 +270,9 @@ struct FetchInt {
         return static_cast<Int>(
             getdata<SQInteger, FC>(vm, index, OT_INTEGER, sq_getinteger));
     }
-	static bool doit2(HSQUIRRELVM vm, SQInteger index, Int& v) {
+	static bool tryit(HSQUIRRELVM vm, SQInteger index, Int& v) {
 		SQInteger r;
-		bool ret = getdata2<SQInteger, FC>(vm, index, OT_INTEGER, sq_getinteger, r);
+		bool ret = storedata<SQInteger, FC>(vm, index, OT_INTEGER, sq_getinteger, r);
 		v = static_cast<Int>(r);
 		return ret;
 	}
@@ -304,15 +304,15 @@ struct Fetch<float, FC> {
 		}
 		return getdata<SQFloat, FC>(vm, index, OT_FLOAT, sq_getfloat);
     }
-	static bool doit2(HSQUIRRELVM vm, SQInteger index, float& v) {
+	static bool tryit(HSQUIRRELVM vm, SQInteger index, float& v) {
 		SQObjectType at = sq_gettype(vm, index);
 		if ( at == OT_INTEGER ) {
 			SQInteger i;
-			bool ret = getdata2<SQInteger, FC>(vm, index, OT_INTEGER, sq_getinteger, i);
+			bool ret = storedata<SQInteger, FC>(vm, index, OT_INTEGER, sq_getinteger, i);
 			v = i;
 			return ret;
 		}
-		return getdata2<SQFloat, FC>(vm, index, OT_FLOAT, sq_getfloat, v);
+		return storedata<SQFloat, FC>(vm, index, OT_FLOAT, sq_getfloat, v);
 	}
 };
 
@@ -322,8 +322,8 @@ struct Fetch<bool, FC> {
         return getdata<SQBool, FC>(
             vm, index, OT_BOOL, sq_getbool);
     }
-	static bool doit2(HSQUIRRELVM vm, SQInteger index, bool& v) {
-		return getdata2<SQBool, FC>(
+	static bool tryit(HSQUIRRELVM vm, SQInteger index, bool& v) {
+		return storedata<SQBool, FC>(
 		   vm, index, OT_BOOL, sq_getbool, v);
 	}
 };
@@ -334,8 +334,8 @@ struct Fetch<HSQOBJECT, FC> {
 		return getdata<HSQOBJECT, FC>(
 		vm, index, type, sq_getstackobj);
 	}
-	static bool doit2(HSQUIRRELVM vm, SQInteger index, SQObjectType type, HSQOBJECT& v) {
-		return getdata2<HSQOBJECT, FC>(
+	static bool tryit(HSQUIRRELVM vm, SQInteger index, SQObjectType type, HSQOBJECT& v) {
+		return storedata<HSQOBJECT, FC>(
 				  vm, index, type, sq_getstackobj, v);
 	}
 };
@@ -346,9 +346,9 @@ struct Fetch<string_wrapper, FC> {
         return getdata<const SQChar*, FC>(
             vm, index, OT_STRING, sq_getstring);
     }
-	static bool doit2(HSQUIRRELVM vm, SQInteger index, string_wrapper& v) {
+	static bool tryit(HSQUIRRELVM vm, SQInteger index, string_wrapper& v) {
 		const SQChar* p = nullptr;
-		bool ret = getdata2<const SQChar*, FC>(
+		bool ret = storedata<const SQChar*, FC>(
             vm, index, OT_STRING, sq_getstring, p);
 		if ( p ) {
 			v = string_wrapper(p);
@@ -364,9 +364,9 @@ fetch(HSQUIRRELVM vm, SQInteger index) {
 }
 
 template <class T, FetchContext FC>
-bool fetch2(HSQUIRRELVM vm, SQInteger index, T& v) {
+bool store(HSQUIRRELVM vm, SQInteger index, T& v) {
 	typename wrapped_type<T>::wrapper_type t(v);
-	bool ret = Fetch<typename wrapped_type<T>::wrapper_type, FC>::doit2(vm, index, t);
+	bool ret = Fetch<typename wrapped_type<T>::wrapper_type, FC>::tryit(vm, index, t);
 	v = t;
 	return ret;
 }
@@ -378,9 +378,9 @@ fetch_obj(HSQUIRRELVM vm, SQInteger index, SQObjectType type) {
 }
 
 template <FetchContext FC>
-bool fetch2_obj(HSQUIRRELVM vm, SQInteger index, HSQOBJECT& v, SQObjectType type) {
+bool store_obj(HSQUIRRELVM vm, SQInteger index, HSQOBJECT& v, SQObjectType type) {
 	typename wrapped_type<HSQOBJECT>::wrapper_type t(v);
-	bool ret = Fetch<typename wrapped_type<HSQOBJECT>::wrapper_type, FC>::doit2(vm, index, type, t);
+	bool ret = Fetch<typename wrapped_type<HSQOBJECT>::wrapper_type, FC>::tryit(vm, index, type, t);
 	v = t;
 	return ret;
 }

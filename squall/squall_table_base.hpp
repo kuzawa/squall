@@ -79,7 +79,7 @@ public:
 		if (!SQ_SUCCEEDED(sq_get(vm_, -2))) {
 			return false;
 		}
-		return detail::fetch2<T, detail::FetchContext::TableEntry>(vm_, -1, r);
+		return detail::store<T, detail::FetchContext::TableEntry>(vm_, -1, r);
 	}
 
     template <class R, class... T>
@@ -152,7 +152,7 @@ inline bool TableBase::get(const string& name, TableBase& r) {
 		return false;
 	}
 	HSQOBJECT o;
-	bool ret = detail::fetch2_obj<detail::FetchContext::TableEntry>(vm_, -1, o, OT_TABLE);
+	bool ret = detail::store_obj<detail::FetchContext::TableEntry>(vm_, -1, o, OT_TABLE);
 	if ( ret ) {
 		r = TableBase(vm_, o);
 	}
