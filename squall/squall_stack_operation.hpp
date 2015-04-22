@@ -368,15 +368,10 @@ bool fetch2(HSQUIRRELVM vm, SQInteger index, T& v) {
 	return ret;
 }
 
-template <class T, FetchContext FC>
-T fetch(HSQUIRRELVM vm, SQInteger index, SQObjectType type) {
-	return Fetch<typename wrapped_type<T>::wrapper_type, FC>::doit(vm, index, type);
-}
-
-template <class T, FetchContext FC>
-bool fetch2(HSQUIRRELVM vm, SQInteger index, T& v, SQObjectType type) {
-	typename wrapped_type<T>::wrapper_type t(v);
-	bool ret = Fetch<typename wrapped_type<T>::wrapper_type, FC>::doit2(vm, index, type, t);
+template <FetchContext FC>
+bool fetch2_obj(HSQUIRRELVM vm, SQInteger index, HSQOBJECT& v, SQObjectType type) {
+	typename wrapped_type<HSQOBJECT>::wrapper_type t(v);
+	bool ret = Fetch<typename wrapped_type<HSQOBJECT>::wrapper_type, FC>::doit2(vm, index, type, t);
 	v = t;
 	return ret;
 }

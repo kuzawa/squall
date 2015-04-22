@@ -69,20 +69,8 @@ public:
         throw squirrel_error("slot '" + name + "' not found");
     }
 
-    template <class T>
-    bool get(const string& name, T& r) {
-        sq_pushobject(vm_, tableobj_);
-        sq_pushstring(vm_, name.data(), name.length());
-        if (!SQ_SUCCEEDED(sq_get(vm_, -2))) {
-            return false;
-        }
-        r = detail::fetch<T, detail::FetchContext::TableEntry>(vm_, -1);
-        sq_pop(vm_, 2);
-        return true;
-    }
-
 	template <class T>
-	bool get2(const string& name, T& r) {
+	bool get(const string& name, T& r) {
 		sq_pushobject(vm_, tableobj_);
 		sq_pushstring(vm_, name.data(), name.length());
 		if (!SQ_SUCCEEDED(sq_get(vm_, -2))) {
@@ -125,29 +113,16 @@ protected:
     HSQUIRRELVM handle() { return vm_; }
     HSQOBJECT&  tableobj() { return tableobj_; }
 
-    template <class T>
-    bool get(const string& name, T& r, SQObjectType type) {
+    bool get(const string& name, HSQOBJECT& r, SQObjectType type) {
         sq_pushobject(vm_, tableobj_);
         sq_pushstring(vm_, name.data(), name.length());
         if (!SQ_SUCCEEDED(sq_get(vm_, -2))) {
             return false;
         }
-        r = detail::fetch<T, detail::FetchContext::TableEntry>(vm_, -1, type);
+        bool ret = detail::fetch2_obj<detail::FetchContext::TableEntry>(vm_, -1, r, type);
         sq_pop(vm_, 2);
-        return true;
+        return ret;
     }
-
-	template <class T>
-	bool get2(const string& name, T& r, SQObjectType type) {
-		sq_pushobject(vm_, tableobj_);
-		sq_pushstring(vm_, name.data(), name.length());
-		if (!SQ_SUCCEEDED(sq_get(vm_, -2))) {
-			return false;
-		}
-		bool ret = detail::fetch2<T, detail::FetchContext::TableEntry>(vm_, -1, r, type);
-		sq_pop(vm_, 2);
-		return ret;
-	}
 
 private:
     HSQUIRRELVM vm_;
@@ -158,16 +133,16 @@ private:
 template <>
 inline TableBase TableBase::get(const string& name) {
     HSQOBJECT obj;
-    if (get<HSQOBJECT>(name, obj, OT_TABLE)) {
+    if (get(name, obj, OT_TABLE)) {
         return TableBase(vm_, obj);
     }
     throw squirrel_error("slot '" + name + "' not found");
 }
 
 template <>
-inline bool TableBase::get2(const string& name, TableBase& r) {
+inline bool TableBase::get(const string& name, TableBase& r) {
 	HSQOBJECT obj;
-	if (get2<HSQOBJECT>(name, obj, OT_TABLE)) {
+	if (get(name, obj, OT_TABLE)) {
 		r = TableBase(vm_, obj);
 		return true;
 	}
