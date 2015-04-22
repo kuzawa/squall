@@ -52,47 +52,35 @@ public:
 
     template <class T>
     T get(SQInteger idx) {
-        T r;
-        if(get<T>(idx, r)) {
-            return r;
-        }
-        throw squirrel_error("index '" + std::to_string(idx) + "'is out of range");
+		keeper k(vm_);
+		sq_pushobject(vm_, arrayobj_);
+		sq_pushinteger(vm_, idx);
+		if (!SQ_SUCCEEDED(sq_get(vm_, -2))) {
+			throw squirrel_error("array index '" + std::to_string(idx) + "' out of bound");
+		}
+		return T(detail::fetch<T, detail::FetchContext::TableEntry>(vm_, -1));
     }
 
     template <class T>
     bool get(SQInteger idx, T& r) {
+		keeper k(vm_);
         sq_pushobject(vm_, arrayobj_);
         sq_pushinteger(vm_, idx);
         if (!SQ_SUCCEEDED(sq_get(vm_, -2))) {
             return false;
         }
-        r = detail::fetch<T, detail::FetchContext::ArrayEntry>(vm_, -1);
-        sq_pop(vm_, 2);
-        return true;
+        return detail::store<T, detail::FetchContext::ArrayEntry>(vm_, -1, r);
     }
 
     SQInteger size() const {
+		keeper k(vm_);
         sq_pushobject(vm_, arrayobj_);
-        SQInteger r = sq_getsize(vm_, -1);
-        sq_pop(vm_, 1);
-        return r;
+		return sq_getsize(vm_, -1);
     }
 
 protected:
     HSQUIRRELVM handle() { return vm_; }
     HSQOBJECT&  arrayobj() { return arrayobj_; }
-
-    template <class T>
-    bool get(SQInteger idx, T& r, SQObjectType type) {
-        sq_pushobject(vm_, arrayobj_);
-        sq_pushinteger(vm_, idx);
-        if (!SQ_SUCCEEDED(sq_get(vm_, -2))) {
-            return false;
-        }
-        r = detail::fetch<T, detail::FetchContext::ArrayEntry>(vm_, -1, type);
-        sq_pop(vm_, 2);
-        return true;
-    }
 
 private:
     HSQUIRRELVM vm_;
@@ -100,44 +88,56 @@ private:
 
 };
 
-template <> inline
-bool TableBase::get(const string& name, ArrayBase& r) {
-    sq_pushobject(vm_, tableobj_);
-    sq_pushstring(vm_, name.data(), name.length());
-    if (!SQ_SUCCEEDED(sq_get(vm_, -2))) {
-        return false;
-    }
-    HSQOBJECT o = detail::fetch<HSQOBJECT, detail::FetchContext::TableEntry>(vm_, -1, OT_ARRAY);
-    sq_pop(vm_, 2);
-    r = ArrayBase(vm_, o);
-    return true;
+template <>
+inline ArrayBase TableBase::get(const string& name) {
+	keeper k(vm_);
+	sq_pushobject(vm_, tableobj_);
+	sq_pushstring(vm_, name.data(), name.length());
+	if (!SQ_SUCCEEDED(sq_get(vm_, -2))) {
+		throw squirrel_error("slot '" + name + "' not found");
+	}
+	HSQOBJECT o = detail::fetch_obj<detail::FetchContext::TableEntry>(vm_, -1, OT_ARRAY);
+	return ArrayBase(vm_, o);
 }
 
-template <> inline
-ArrayBase TableBase::get(const string& name) {
-    HSQOBJECT obj;
-    if (get<HSQOBJECT>(name, obj, OT_ARRAY)) {
-        return ArrayBase(vm_, obj);
-    }
-    throw squirrel_error("slot '" + name + "' not found");
+template <>
+inline bool TableBase::get(const string& name, ArrayBase& r) {
+	keeper k(vm_);
+	sq_pushobject(vm_, tableobj_);
+	sq_pushstring(vm_, name.data(), name.length());
+	if (!SQ_SUCCEEDED(sq_get(vm_, -2))) {
+		return false;
+	}
+	HSQOBJECT o;
+	bool ret = detail::store_obj<detail::FetchContext::TableEntry>(vm_, -1, o, OT_ARRAY);
+	if ( ret ) {
+		r = ArrayBase(vm_, o);
+	}
+	return ret;
 }
 
-template <> inline
-TableBase ArrayBase::get(SQInteger idx) {
-    HSQOBJECT obj;
-    if (get<HSQOBJECT>(idx, obj, OT_TABLE)) {
-        return TableBase(vm_, obj);
-    }
-    throw squirrel_error("index '" + std::to_string(idx) + "'is out of range");
+template <>
+inline TableBase ArrayBase::get(SQInteger idx) {
+	keeper k(vm_);
+	sq_pushobject(vm_, arrayobj_);
+	sq_pushinteger(vm_, idx);
+	if (!SQ_SUCCEEDED(sq_get(vm_, -2))) {
+		throw squirrel_error("array index '" + std::to_string(idx) + "' out of bound");
+	}
+	HSQOBJECT o = detail::fetch_obj<detail::FetchContext::TableEntry>(vm_, -1, OT_TABLE);
+	return TableBase(vm_, o);
 }
 
-template <> inline
-ArrayBase ArrayBase::get(SQInteger idx) {
-    HSQOBJECT obj;
-    if (get<HSQOBJECT>(idx, obj, OT_ARRAY)) {
-        return ArrayBase(vm_, obj);
-    }
-    throw squirrel_error("index '" + std::to_string(idx) + "'is out of range");
+template <>
+inline ArrayBase ArrayBase::get(SQInteger idx) {
+	keeper k(vm_);
+	sq_pushobject(vm_, arrayobj_);
+	sq_pushinteger(vm_, idx);
+	if (!SQ_SUCCEEDED(sq_get(vm_, -2))) {
+		throw squirrel_error("array index '" + std::to_string(idx) + "' out of bound");
+	}
+	HSQOBJECT o = detail::fetch_obj<detail::FetchContext::TableEntry>(vm_, -1, OT_ARRAY);
+	return ArrayBase(vm_, o);
 }
 
 }
