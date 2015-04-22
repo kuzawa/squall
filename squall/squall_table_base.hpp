@@ -81,18 +81,6 @@ public:
         return true;
     }
 
-    template <class T>
-    bool get(const string& name, T& r, SQObjectType type) {
-        sq_pushobject(vm_, tableobj_);
-        sq_pushstring(vm_, name.data(), name.length());
-        if (!SQ_SUCCEEDED(sq_get(vm_, -2))) {
-            return false;
-        }
-        r = detail::fetch<T, detail::FetchContext::TableEntry>(vm_, -1, type);
-        sq_pop(vm_, 2);
-        return true;
-    }
-
     template <class R, class... T>
     R call(const string& name, T... args) {
         return detail::call<R>(vm_, tableobj_, name, args...);
@@ -124,6 +112,18 @@ public:
 protected:
     HSQUIRRELVM handle() { return vm_; }
     HSQOBJECT&  tableobj() { return tableobj_; }
+
+    template <class T>
+    bool get(const string& name, T& r, SQObjectType type) {
+        sq_pushobject(vm_, tableobj_);
+        sq_pushstring(vm_, name.data(), name.length());
+        if (!SQ_SUCCEEDED(sq_get(vm_, -2))) {
+            return false;
+        }
+        r = detail::fetch<T, detail::FetchContext::TableEntry>(vm_, -1, type);
+        sq_pop(vm_, 2);
+        return true;
+    }
 
 private:
     HSQUIRRELVM vm_;
