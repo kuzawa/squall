@@ -8,9 +8,8 @@ int main() {
 		squall::VMStd vm;
 		vm.dofile("complex.nut");
 
-//		int one;
-//		bool ret = vm.root_table().get2<int>("one", one);
-//		std::cout << one << std::endl;
+		auto one = vm.root_table().get<std::string>("one");
+		std::cout << one << std::endl;
 
 //		std::string hello;
 //		hello = vm.root_table().get<std::string>("hello");
