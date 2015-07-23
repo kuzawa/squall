@@ -56,7 +56,7 @@ public:
 		sq_pushobject(vm_, arrayobj_);
 		sq_pushinteger(vm_, idx);
 		if (!SQ_SUCCEEDED(sq_get(vm_, -2))) {
-			throw squirrel_error("array index '" + std::to_string(idx) + "' out of bound");
+			throw squirrel_error("array index '" + to_string(idx) + "' out of bound");
 		}
 		return T(detail::fetch<T, detail::FetchContext::TableEntry>(vm_, -1));
     }
@@ -122,7 +122,7 @@ inline TableBase ArrayBase::get(SQInteger idx) {
 	sq_pushobject(vm_, arrayobj_);
 	sq_pushinteger(vm_, idx);
 	if (!SQ_SUCCEEDED(sq_get(vm_, -2))) {
-		throw squirrel_error("array index '" + std::to_string(idx) + "' out of bound");
+		throw squirrel_error("array index '" + to_string(idx) + "' out of bound");
 	}
 	HSQOBJECT o = detail::fetch_obj<detail::FetchContext::TableEntry>(vm_, -1, OT_TABLE);
 	return TableBase(vm_, o);
@@ -134,7 +134,7 @@ inline ArrayBase ArrayBase::get(SQInteger idx) {
 	sq_pushobject(vm_, arrayobj_);
 	sq_pushinteger(vm_, idx);
 	if (!SQ_SUCCEEDED(sq_get(vm_, -2))) {
-		throw squirrel_error("array index '" + std::to_string(idx) + "' out of bound");
+		throw squirrel_error("array index '" + to_string(idx) + "' out of bound");
 	}
 	HSQOBJECT o = detail::fetch_obj<detail::FetchContext::TableEntry>(vm_, -1, OT_ARRAY);
 	return ArrayBase(vm_, o);

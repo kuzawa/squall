@@ -100,7 +100,18 @@ void print_stack_object(S& s, HSQUIRRELVM vm, SQInteger idx) {
     SQObjectType t = sq_gettype(vm, idx);
     s << get_type_text(t);
 }
-		
+
+#ifdef __ANDROID__
+template <typename T>
+std::string to_string(T value)
+{
+    std::ostringstream os;
+    os << value;
+    return os.str();
+}
+#else
+	using std::to_string;
+#endif
 
 }
 
